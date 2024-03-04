@@ -107,6 +107,10 @@ describe("Delete /books/:id", function(){
         expect(response.statusCode).toBe(200);
         expect(response.body).toEqual({message: "Book deleted"})
     })
+    test("Deleting none existing book", async function(){
+        const response = await request(app).delete(`/books/1`)
+        expect(response.statusCode).toBe(404);
+    })
 })
 
 afterEach(async function(){
