@@ -2,6 +2,8 @@ const express = require("express");
 const Book = require("../models/book");
 const jsonschema = require("jsonschema");
 const bookSchema = require("../schemas/bookSchema.json");
+const newbookSchema = require("../schemas/newbookSchema.json");
+
 const ExpressError = require("../expressError");
 
 const router = new express.Router();
@@ -41,27 +43,45 @@ router.get("/:id", async function (req, res, next) {
 // });
 
 router.post("/", async (req, res, next)=>{
-  const result = jsonschema.validate(req.body, bookSchema);
-  if(!result.valid){
-    const listOfErrors = result.errors.map(e=>e.stack);
-    const err = new ExpressError(listOfErrors, 400);
-    return next(err);
+  try{
+    const result = jsonschema.validate(req.body, bookSchema);
+    if(!result.valid){
+      const listOfErrors = result.errors.map(e=>e.stack);
+      const err = new ExpressError(listOfErrors, 400);
+      return next(err);
+    }
+    const book = await Book.create(req.body);
+    return res.status(201).json({book});
   }
-  const book = await Book.create(req.body);
-  return res.status(201).json({book});
+  catch(e){
+    return next(e);
+  }
+  
 })
 
 /** PUT /[isbn]   bookData => {book: updatedBook}  */
 
 router.put("/:isbn", async function (req, res, next) {
-  const result = jsonschema.validate(req.body, bookSchema);
-  if(!result.valid){
-    const listOfErrors = result.errors.map(e=>e.stack);
-    const err = new ExpressError(listOfErrors, 400);
-    return next(err);
+  try{
+    if ("isbn" in req.body){
+      return next({
+        status:400,
+        message: "Not allowed"
+      });
+    }
+    const result = jsonschema.validate(req.body, newbookSchema);
+    if(!result.valid){
+      const listOfErrors = result.errors.map(e=>e.stack);
+      const err = new ExpressError(listOfErrors, 400);
+      return next(err);
+    }
+    const book = await Book.update(req.params.isbn, req.body);
+    return res.json({ book });
   }
-  const book = await Book.update(req.params.isbn, req.body);
-  return res.json({ book });
+  catch(e){
+    return next(e);
+  }
+  
 });
 
 /** DELETE /[isbn]   => {message: "Book deleted"} */
